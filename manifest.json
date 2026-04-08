@@ -1,0 +1,18 @@
+{
+  "name": "FieldCam O&M",
+  "short_name": "FieldCam",
+  "start_url": "/fieldcam/index.html",
+  "scope": "/fieldcam/",
+  "display": "fullscreen",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "App per l'acquisizione tecnica e monitoraggio cantieri fotovoltaici.",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
