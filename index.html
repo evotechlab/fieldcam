@@ -138,26 +138,35 @@
                 <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center border-b border-slate-100 pb-3">
                     <i class="fas fa-clipboard-check text-blue-500 mr-2.5"></i> Dati Cantiere
                 </h2>
+                
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Nome Operatore</label>
                     <input id="operatore" type="text" placeholder="Es. Mario Rossi" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium">
                 </div>
+                
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Nome Impianto (Cartella)</label>
-                    <input id="impianto" type="text" placeholder="Es. FV Roma Sud" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium">
+                    
+                    <select id="impiantoSelect" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white transition-colors mb-2" onchange="handleImpiantoChange()">
+                        <option value="" disabled selected>Caricamento cantieri...</option>
+                        <option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>
+                    </select>
+                    
+                    <input id="impianto" type="text" placeholder="Es. FV Roma Sud" class="w-full p-3.5 bg-white border border-blue-400 rounded-xl text-slate-800 font-medium hidden shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:outline-none transition-all">
                 </div>
+                
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">Potenza (MW)</label>
-                        <input id="potenza" type="number" step="0.1" placeholder="0.0" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium">
+                        <input id="potenza" type="number" step="0.1" placeholder="0.0" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium transition-colors focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">Luogo / Città</label>
-                        <input id="luogo" type="text" placeholder="Es. Roma" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium">
+                        <input id="luogo" type="text" placeholder="Es. Roma" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium transition-colors focus:outline-none">
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
 
         <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
             <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center border-b border-slate-100 pb-3">
@@ -169,6 +178,7 @@
                     <option value="" disabled selected>Seleziona stato...</option>
                     <option value="01 PRIMA">01 Prima</option>
                     <option value="02 DOPO">02 Dopo</option>
+                    <option value="03 ESTERNO">03 Esterno</option> 
                 </select>
             </div>
             <div>
@@ -191,7 +201,7 @@
                 </select>
             </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mt-6">
             
             <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center border-b border-slate-100 pb-3">
                 <i class="fas fa-camera text-blue-500 mr-2.5"></i> Acquisizione
@@ -250,14 +260,17 @@ let gpsData = null;
 let sessionUploadedPhotos = 0;
 let isSessionLocked = false;
 let isSyncing = false;
+let cantieriLocali = []; // Aggiunta per il motore Ibrido
 
 /* ================= INIZIALIZZAZIONE CON DOPPIA SERRATURA ================= */
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Controlla prima il lucchetto aziendale
     if (!isAppUnlocked) {
         document.getElementById('appLockScreen').classList.remove('hidden');
     } else {
         await avviaFlussoDropbox();
+        // INNESCO MOTORE IBRIDO
+        caricaCantieriLocali(); 
+        syncCantieriDaDropbox();
     }
     updateSyncBadge();
 });
@@ -280,7 +293,6 @@ async function verifyMobileLock() {
         const res = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // Passiamo l'azione corretta e i dati
             body: JSON.stringify({ action: "verifyLogin", user: user, pass: pass })
         });
         
@@ -291,6 +303,9 @@ async function verifyMobileLock() {
             isAppUnlocked = true;
             document.getElementById('appLockScreen').classList.add('hidden');
             await avviaFlussoDropbox();
+            // INNESCO MOTORE IBRIDO (Se si sblocca ora)
+            caricaCantieriLocali(); 
+            syncCantieriDaDropbox();
         } else {
             err.innerText = "Credenziali errate. Riprova.";
             err.classList.remove('hidden');
@@ -368,7 +383,6 @@ async function proxyFetch(filename, fileOrString, isJson = false) {
     
     const responseText = await res.text();
     
-    // Ignoriamo i 401 durante il login aziendale, agiamo solo se scade Dropbox
     if(res.status === 401 || responseText.includes("expired_access_token")) { 
         localStorage.removeItem("db_access");
         alert("Sessione Dropbox scaduta. Clicca OK per ricaricare.");
@@ -379,6 +393,117 @@ async function proxyFetch(filename, fileOrString, isJson = false) {
     if(!res.ok) throw new Error(`Errore Server: ${responseText}`);
     return JSON.parse(responseText);
 }
+
+/* ================= MOTORE CANTIERE IBRIDO E SYNC ================= */
+function caricaCantieriLocali() {
+    const salvati = localStorage.getItem('fc_lista_cantieri');
+    if (salvati) {
+        cantieriLocali = JSON.parse(salvati);
+    }
+    renderMenuCantieri();
+}
+
+function renderMenuCantieri() {
+    const select = document.getElementById('impiantoSelect');
+    if (!select) return;
+
+    const valoreAttuale = select.value;
+    select.innerHTML = `
+        <option value="" disabled selected>Seleziona o crea cantiere...</option>
+        <option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>
+    `;
+
+    cantieriLocali.sort((a,b) => a.nomeImpianto.localeCompare(b.nomeImpianto)).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.nomeOriginale; 
+        opt.innerText = c.nomeImpianto;
+        select.insertBefore(opt, select.lastElementChild);
+    });
+
+    if (valoreAttuale && cantieriLocali.find(c => c.nomeOriginale === valoreAttuale)) {
+        select.value = valoreAttuale;
+    }
+}
+
+function handleImpiantoChange() {
+    const select = document.getElementById('impiantoSelect');
+    const inputNuovo = document.getElementById('impianto');
+    const potInput = document.getElementById('potenza');
+    const luogoInput = document.getElementById('luogo');
+
+    if (select.value === '_NEW_') {
+        inputNuovo.classList.remove('hidden');
+        inputNuovo.value = '';
+        inputNuovo.focus();
+
+        potInput.readOnly = false;
+        potInput.value = '';
+        potInput.classList.remove('bg-slate-200', 'text-slate-500');
+
+        luogoInput.readOnly = false;
+        luogoInput.value = '';
+        luogoInput.classList.remove('bg-slate-200', 'text-slate-500');
+    } else {
+        inputNuovo.classList.add('hidden');
+        const cantiereTrovato = cantieriLocali.find(c => c.nomeOriginale === select.value);
+        
+        if (cantiereTrovato) {
+            inputNuovo.value = cantiereTrovato.nomeImpianto; 
+            potInput.value = cantiereTrovato.potenza;
+            luogoInput.value = cantiereTrovato.luogo;
+        }
+
+        potInput.readOnly = true;
+        potInput.classList.add('bg-slate-200', 'text-slate-500');
+
+        luogoInput.readOnly = true;
+        luogoInput.classList.add('bg-slate-200', 'text-slate-500');
+    }
+}
+
+async function syncCantieriDaDropbox() {
+    if (!navigator.onLine || !accessToken) return;
+
+    try {
+        const res = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ action: 'listFolder', path: '' }) 
+        });
+
+        if (!res.ok) throw new Error("Errore Serverless");
+        const data = await res.json();
+        
+        const cartelle = data.entries.filter(e => e['.tag'] === 'folder');
+        
+        const nuoviCantieri = cartelle.map(cartella => {
+            const nomeRaw = cartella.name; 
+            const parti = nomeRaw.split('_');
+            
+            let nomeImpianto = nomeRaw;
+            let luogo = "";
+            let potenza = "";
+            
+            if (parti.length >= 3) {
+                potenza = parti.pop().replace('MW', '');
+                luogo = parti.pop();                     
+                nomeImpianto = parti.join('_');          
+            }
+
+            return { nomeOriginale: nomeRaw, nomeImpianto: nomeImpianto, luogo: luogo, potenza: potenza };
+        });
+
+        localStorage.setItem('fc_lista_cantieri', JSON.stringify(nuoviCantieri));
+        caricaCantieriLocali();
+
+    } catch (error) {
+        console.log("[Auto-Sync] Download cantieri fallito. Uso cache locale.", error);
+    }
+}
+
 
 /* ================= UTILITY UI & FEEDBACK ================= */
 function showToast(msg, type="success") {
@@ -397,11 +522,16 @@ function lockSessionUI() {
     const form = document.getElementById('cantiereForm');
     const summary = document.getElementById('sessionSummary');
     
-    const imp = document.getElementById('impianto').value.trim();
+    // Mostriamo il nome estratto se è un cantiere selezionato dalla tendina
+    let impLabel = document.getElementById('impianto').value.trim();
+    if(document.getElementById('impiantoSelect').value !== "_NEW_") {
+        impLabel = document.getElementById('impiantoSelect').options[document.getElementById('impiantoSelect').selectedIndex].text;
+    }
+    
     const pot = document.getElementById('potenza').value.trim() || "0";
     const op = document.getElementById('operatore').value.trim();
     
-    document.getElementById('summaryImpianto').innerText = `${imp} (${pot}MW)`;
+    document.getElementById('summaryImpianto').innerText = `${impLabel} (${pot}MW)`;
     document.getElementById('summaryOp').innerText = op;
 
     form.classList.add('collapsed');
@@ -421,7 +551,7 @@ function unlockSessionUI() {
     setTimeout(() => form.classList.remove('collapsed'), 10);
 }
 
-/* ================= GESTIONE FOTO E UPLOAD (ORIGINALE) ================= */
+/* ================= GESTIONE FOTO E UPLOAD ================= */
 function handlePhoto(event) {
     const files = event.target.files;
     if(!files || files.length === 0) return;
@@ -490,7 +620,6 @@ function renderPhotoGrid() {
 
 /* ================= MOTORE OFFLINE FIRST (INDEXED-DB) ================= */
 
-// 1. SALVATAGGIO LOCALE
 async function uploadData() {
     const op = document.getElementById('operatore').value.trim();
     const impRaw = document.getElementById('impianto').value.trim();
@@ -536,7 +665,6 @@ async function uploadData() {
     }
 }
 
-// 2. BACKGROUND SYNC A DROPBOX
 async function processSyncQueue(manualClick = false) {
     if (isSyncing) return;
     
@@ -574,7 +702,6 @@ async function processSyncQueue(manualClick = false) {
             const dStr = d.toISOString().split('T')[0];
             const tStr = d.toTimeString().split(' ')[0].replace(/:/g, '-');
             
-
             const photoNames = session.photos.map((_, idx) => String(idx + 1).padStart(2, '0') + '.jpg');
 
             const masterData = { operatore: session.operatore, impianto: session.impianto, potenza: session.potenza, luogo: session.luogo, ultimo_aggiornamento: d.toISOString() };
@@ -609,7 +736,6 @@ async function processSyncQueue(manualClick = false) {
     }
 }
 
-// 3. UI E EVENT LISTENER
 async function updateSyncBadge() {
     const queue = await idbKeyval.get('fieldcam_queue') || [];
     const container = document.getElementById('syncBadgeContainer');
@@ -626,6 +752,8 @@ async function updateSyncBadge() {
 window.addEventListener('online', () => {
     showToast("Sei di nuovo online! Sincronizzazione in background avviata...");
     processSyncQueue();
+    // Aggiorna anche la lista cantieri se torna la connessione
+    syncCantieriDaDropbox(); 
 });
 
 function softResetCamera() {
@@ -635,20 +763,24 @@ function softResetCamera() {
 }
 
 function hardReset() {
-    if(!confirm("Attenzione: Cliccando OK scollegherai sia la sessione in corso che l'app, tornando alla schermata di blocco iniziale.")) return;
+    if(!confirm("Attenzione: Cliccando OK scollegherai l'app e la cache. I dati non inviati andranno persi.")) return;
     
-    // Rimuoviamo tutto
     localStorage.removeItem("fc_mobile_unlocked");
     localStorage.removeItem("db_access");
+    localStorage.removeItem("fc_lista_cantieri"); // Puliamo anche la lista cantieri
     
-    // Ricarichiamo la pagina per forzare il blocco iniziale
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) { registration.unregister(); }
+        });
+    }
+    
     window.location.reload();
 }
 </script>
 
 </body>
 </html>
-
 
 
 
