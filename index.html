@@ -265,6 +265,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // INNESCO MOTORE IBRIDO
         caricaCantieriLocali(); 
         syncCantieriDaDropbox();
+        
+        impostaNomeOperatore(); // <--- NUOVO: Recupera il nome al riavvio dell'app
     }
     updateSyncBadge();
 });
@@ -292,14 +294,19 @@ async function verifyMobileLock() {
         
         const data = await res.json();
         
-        if (data.success) {
+            if (data.success) {
             localStorage.setItem("fc_mobile_unlocked", "true");
+            localStorage.setItem("fc_nome_operatore", user); // <--- NUOVO: Salva il nome
+            
             isAppUnlocked = true;
             document.getElementById('appLockScreen').classList.add('hidden');
             await avviaFlussoDropbox();
+            
             // INNESCO MOTORE IBRIDO (Se si sblocca ora)
             caricaCantieriLocali(); 
             syncCantieriDaDropbox();
+            
+            impostaNomeOperatore(); // <--- NUOVO: Compila il campo
         } else {
             err.innerText = "Credenziali errate. Riprova.";
             err.classList.remove('hidden');
@@ -315,6 +322,21 @@ async function verifyMobileLock() {
 function resetLockBtn(btn) {
     btn.innerHTML = '<i class="fas fa-key mr-2"></i> Accedi';
     btn.disabled = false;
+}
+
+/* ================= AUTO-COMPILAZIONE OPERATORE ================= */
+function impostaNomeOperatore() {
+    const nomeSalvato = localStorage.getItem("fc_nome_operatore");
+    const campoOperatore = document.getElementById("operatore");
+    
+    if (nomeSalvato && campoOperatore) {
+        // Formatta il nome: prima lettera maiuscola (opzionale, ma sta bene)
+        const nomeFormattato = nomeSalvato.charAt(0).toUpperCase() + nomeSalvato.slice(1).toLowerCase();
+        
+        campoOperatore.value = nomeFormattato;
+        campoOperatore.readOnly = true; // Impedisce modifiche manuali
+        campoOperatore.classList.add('bg-slate-200', 'text-slate-500'); // Stile grigio per far capire che è bloccato
+    }
 }
 
 /* ================= FLUSSO DROPBOX ================= */
