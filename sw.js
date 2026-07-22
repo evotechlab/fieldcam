@@ -1,5 +1,4 @@
-const CACHE_NAME = 'fieldcam-offline-v3';
-
+const CACHE_NAME = 'fieldcam-offline-v4';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -8,18 +7,17 @@ const ASSETS_TO_CACHE = [
     './icon.png'
 ];
 
-
 self.addEventListener('install', (event) => {
+    // skipWaiting forza l'attivazione immediata del nuovo Service Worker
+    self.skipWaiting(); 
     event.waitUntil(
         caches.open(CACHE_NAME)
         .then((cache) => {
-            console.log('[Service Worker] Salvataggio HTML locale...');
+            console.log('[Service Worker] Salvataggio asset locali...');
             return cache.addAll(ASSETS_TO_CACHE);
         })
-        .then(() => self.skipWaiting())
     );
 });
-
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
@@ -32,35 +30,35 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        }).then(() => self.clients.claim())
+        }).then(() => self.clients.claim()) // Prende il controllo immediato della pagina
     );
 });
 
-
 self.addEventListener('fetch', (event) => {
-
+    // Ignora le richieste POST (come l'invio foto) o chiamate esterne
     if (event.request.method !== 'GET') return;
+    if (event.request.url.includes('workers.dev')) return;
 
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
+        // STRATEGIA: NETWORK-FIRST
+        // 1. Prova prima a scaricare il file aggiornato da internet
+        fetch(event.request).then((networkResponse) => {
             
-            if (cachedResponse) {
-                return cachedResponse;
+            // Se la rete risponde correttamente (200), aggiorniamo la cache 
+            if (networkResponse && networkResponse.status === 200) {
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
             }
-
-           
-            return fetch(event.request).then((networkResponse) => {
-        
-                if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
-                }
-                return networkResponse;
-            }).catch(() => {
-                console.log('[Service Worker] Offline e file non in cache:', event.request.url);
-            });
+            // Mostra all'utente la versione appena scaricata
+            return networkResponse;
+            
+        }).catch(() => {
+            // 2. FALLBACK OFFLINE
+            // Se la rete fallisce (niente segnale nel cantiere), pesca il file dalla memoria
+            console.log('[Service Worker] Rete assente, carico dalla cache:', event.request.url);
+            return caches.match(event.request);
         })
     );
 });
