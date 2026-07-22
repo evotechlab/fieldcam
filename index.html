@@ -180,19 +180,20 @@
             </div>
             </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mt-6">
             <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center border-b border-slate-100 pb-3">
                 <i class="fas fa-layer-group text-blue-500 mr-2.5"></i> Dettagli Intervento
             </h2>
+            
+            <!-- AREA LOTTI (Menu dinamico, ma chiuso) -->
             <div class="mb-4">
-                <label class="block text-xs font-bold text-slate-600 mb-1.5">Area Lotti</label> <!-- START QUALITY FEATURE -->
+                <label class="block text-xs font-bold text-slate-600 mb-1.5">Area Lotti</label>
                 <select id="stato" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white transition-colors">
-                    <option value="" disabled selected>Seleziona lotto...</option>
-                    <option value="LOTTO B">LOTTO B</option>
-                    <option value="LOTTO C">LOTTO C</option>
-                    <option value="LOTTO D">LOTTO D</option> 
+                    <!-- Verrà popolato da JavaScript -->
                 </select>
             </div>
+
+            <!-- AREA IMPIANTO (Menu fisso aziendale) -->
             <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1.5">Area Impianto</label>
                 <select id="zona" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white transition-colors">
@@ -201,9 +202,10 @@
                     <option value="02_TRACKER">02. Tracker</option>
                     <option value="03_MODULIFV">03. Moduli FV</option>
                     <option value="04_SCAVI">04. Scavi</option>
-                    <option value="05_CAVIDOTTI">04. Cavidotti</option>
+                    <option value="05_CAVIDOTTI">05. Cavidotti</option>
                 </select>
             </div>
+        </div>
 
             <!-- END QUALITY FEATURE -->
 
@@ -826,6 +828,45 @@ function hardReset() {
     }
     
     window.location.reload();
+}
+
+/* ================= RUBRICA LOTTI ================= */
+
+const RUBRICA_LOTTI = {
+    "Hergo": ["Lotto B", "Lotto C", "Lotto D"],
+    "WHYSOL": ["Lotto 2"],
+};
+
+function aggiornaLotti(nomeCantiere) {
+    // Puntiamo direttamente al select originale
+    const selectLotto = document.getElementById('stato'); 
+    
+    // Trova i lotti o usa quelli di default
+    const lotti = RUBRICA_LOTTI[nomeCantiere] || RUBRICA_LOTTI["DEFAULT"];
+    
+    // Svuota e riempie con i lotti vincolati
+    selectLotto.innerHTML = '<option value="" disabled selected>Seleziona lotto...</option>';
+    lotti.forEach(lotto => {
+        selectLotto.innerHTML += `<option value="${lotto}">${lotto}</option>`;
+    });
+}
+
+/* ================= COLLEGAMENTO AL CANTIERE ================= */
+// Aggiorna la tua funzione handleImpiantoChange esistente
+function handleImpiantoChange() {
+    const select = document.getElementById('impiantoSelect');
+    const input = document.getElementById('impianto');
+    
+    if (select.value === '_NEW_') {
+        input.classList.remove('hidden');
+        input.value = '';
+        input.focus();
+        aggiornaLotti("DEFAULT"); // Carica i lotti standard
+    } else {
+        input.classList.add('hidden');
+        input.value = select.value;
+        aggiornaLotti(select.value); // Carica i lotti blindati di quel cantiere
+    }
 }
 </script>
 
