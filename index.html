@@ -810,15 +810,18 @@ function softResetCamera() {
 }
 
 function hardReset() {
-    if(!confirm("Attenzione: Cliccando OK scollegherai l'app e la cache. I dati non inviati andranno persi.")) return;
+
+    if(!confirm("Attenzione: Stai per effettuare il Logout.")) return;
     
+    // 2. Rimuoviamo SOLO lo sblocco dell'operatore mobile e la lista cantieri scaricata
     localStorage.removeItem("fc_mobile_unlocked");
-    localStorage.removeItem("db_access");
-    localStorage.removeItem("fc_lista_cantieri"); // Puliamo anche la lista cantieri
+    localStorage.removeItem("fc_lista_cantieri"); 
     
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) { registration.unregister(); }
+            for(let registration of registrations) { 
+                registration.unregister(); 
+            }
         });
     }
     
