@@ -66,7 +66,8 @@
             <h1 class="text-xl font-bold text-slate-800 tracking-tight">FieldCam</h1>
         </div>
         
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2">
+            <!-- NUVOLA DI SINCRONIZZAZIONE (Invariata, ma con spazio ridotto) -->
             <div id="syncBadgeContainer" class="relative hidden cursor-pointer transition-transform active:scale-95" onclick="processSyncQueue(true)">
                 <div class="bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition" title="Sincronizza Dati">
                     <i class="fas fa-cloud-upload-alt text-lg"></i>
@@ -74,9 +75,20 @@
                 <span id="syncBadgeCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">0</span>
             </div>
 
-            <button onclick="hardReset()" class="text-slate-500 hover:text-red-600 transition p-2 rounded-lg hover:bg-red-50" title="Azzera Dati">
-                <i class="fas fa-rotate-right text-lg"></i>
-            </button>
+            <!-- NUOVO MENU A TENDINA -->
+            <div class="relative">
+                <!-- Pulsante menu (Tre puntini) -->
+                <button onclick="toggleMenu()" id="menuTrigger" class="text-slate-500 hover:text-slate-800 transition p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200" title="Opzioni">
+                    <i class="fa-solid fa-ellipsis-vertical text-xl px-2"></i>
+                </button>
+
+                <!-- Tendina Logout (Nascosta di default) -->
+                <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 hidden z-50 transform origin-top-right transition-all">
+                    <button onclick="hardReset()" class="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 font-bold text-sm transition flex items-center">
+                        <i class="fas fa-sign-out-alt mr-3 text-lg"></i> LOGOUT
+                    </button>
+                </div>
+            </div>
         </div>
         
     </div>
@@ -243,6 +255,23 @@
 </div>
 
 <script>
+
+/* ================= GESTIONE MENU ================= */
+function toggleMenu() {
+    const menu = document.getElementById('dropdownMenu');
+    menu.classList.toggle('hidden');
+}
+
+// Chiude il menu automaticamente se l'utente tocca un punto qualsiasi fuori dalla tendina
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('dropdownMenu');
+    const trigger = document.getElementById('menuTrigger');
+    
+    if (menu && !menu.contains(event.target) && !trigger.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+    
 /* ================= CONFIGURAZIONE ================= */
 const WORKER_URL = "https://xkj7fxk.sviluppo-49a.workers.dev"; // WORKER MOBILE
 
