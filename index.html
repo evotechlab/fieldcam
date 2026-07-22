@@ -455,8 +455,10 @@ function renderMenuCantieri() {
     const valoreAttuale = select.value;
     select.innerHTML = `
         <option value="" disabled selected>Seleziona o crea cantiere...</option>
-        <option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>
     `;
+    
+    // riga esclusa volontariamente per nascondere la creazione nuovi cantieri
+    // select.innerHTML += `<option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>`;
 
     cantieriLocali.sort((a,b) => a.nomeImpianto.localeCompare(b.nomeImpianto)).forEach(c => {
         const opt = document.createElement('option');
@@ -464,7 +466,7 @@ function renderMenuCantieri() {
         opt.innerText = c.nomeImpianto;
         select.insertBefore(opt, select.lastElementChild);
     });
-
+    
     if (valoreAttuale && cantieriLocali.find(c => c.nomeOriginale === valoreAttuale)) {
         select.value = valoreAttuale;
     }
