@@ -839,20 +839,21 @@ const RUBRICA_LOTTI = {
 };
 
 function aggiornaLotti(nomeCantiere) {
-    // Puntiamo direttamente al select originale
-    const selectLotto = document.getElementById('stato'); 
-    if (!selectLotto) return; // Controllo di sicurezza
+    // 1. QUESTO POPUP CI SVELERÀ IL MISTERO
+    alert("Valore grezzo in arrivo: [" + nomeCantiere + "]");
     
-    // Evita errori se nomeCantiere è null o undefined
+    const selectLotto = document.getElementById('stato'); 
+    if (!selectLotto) return; 
+    
     if (!nomeCantiere) nomeCantiere = "";
 
-    // SUPER-FILTRO: Rimuove slash (es. /Hergo), spazi vuoti e trasforma in maiuscolo
     const nomeSicuro = nomeCantiere.replace(/[\/\\]/g, '').trim().toUpperCase();
     
-    // Trova i lotti usando il nome pulito, o usa il DEFAULT, o array vuoto per evitare crash
+    // 2. QUESTO POPUP CI DIRÀ COME LO ABBIAMO TRASFORMATO
+    alert("Valore dopo il filtro: [" + nomeSicuro + "]");
+    
     const lotti = RUBRICA_LOTTI[nomeSicuro] || RUBRICA_LOTTI["DEFAULT"] || [];
     
-    // Svuota e riempie con i lotti vincolati
     selectLotto.innerHTML = '<option value="" disabled selected>Seleziona lotto...</option>';
     lotti.forEach(lotto => {
         selectLotto.innerHTML += `<option value="${lotto}">${lotto}</option>`;
