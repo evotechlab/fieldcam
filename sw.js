@@ -1,4 +1,5 @@
-const CACHE_NAME = 'fieldcam-offline-v4';
+// Cambia il versioning nei futuri aggiornamenti
+const CACHE_NAME = 'fieldcam-offline-v5';
 
 const ASSETS_TO_CACHE = [
     './',
