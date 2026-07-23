@@ -18,24 +18,28 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     </style>
 
-<!-- Script cattura-token Dropbox -->
+
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            const hash = window.location.hash;
-            if (hash && hash.includes("access_token")) {
-                const params = new URLSearchParams(hash.substring(1));
-                const token = params.get("access_token");
+            let token = null;
+            
+            
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const queryParams = new URLSearchParams(window.location.search.substring(1));
+            
+            // Cerchiamo le parole chiave usate da Dropbox o Cloudflare
+            token = hashParams.get("access_token") || queryParams.get("access_token") || hashParams.get("token") || queryParams.get("token");
+            
+            if (token) {
                 
-                if (token) {
-                    // Salva il token
-                    localStorage.setItem("db_access", token);
-                    
-                    // Mostra un avviso di successo
-                    alert("✅ Connessione a Dropbox completata con successo! Ora puoi accedere ai moduli.");
-                    
-                    // Pulisce l'URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                localStorage.setItem("db_access", token);
+                localStorage.setItem("dropbox_access_token", token);
+                localStorage.setItem("dropboxToken", token);
+                
+                alert("✅ Token catturato con successo! Ora puoi entrare nel modulo.");
+                
+               
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
     </script>
