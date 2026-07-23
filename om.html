@@ -160,7 +160,7 @@
                     
                     <select id="impiantoSelect" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white transition-colors mb-2" onchange="handleImpiantoChange()">
                         <option value="" disabled selected>Caricamento cantieri...</option>
-                        <option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>
+                        <!--<option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>-->
                     </select>
                     
                     <input id="impianto" type="text" placeholder="Es. FV Roma Sud" class="w-full p-3.5 bg-white border border-blue-400 rounded-xl text-slate-800 font-medium hidden shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:outline-none transition-all">
@@ -420,9 +420,11 @@ function renderMenuCantieri() {
 
     const valoreAttuale = select.value;
     select.innerHTML = `
-        <option value="" disabled selected>Seleziona o crea cantiere...</option>
-        <option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>
+        <option value="" disabled selected>Seleziona cantiere...</option>
     `;
+
+    // riga esclusa volontariamente per nascondere la creazione nuovi cantieri
+    // select.innerHTML += `<option value="_NEW_" class="font-bold text-blue-600">+ Crea Nuovo Cantiere...</option>`;
 
     cantieriLocali.sort((a,b) => a.nomeImpianto.localeCompare(b.nomeImpianto)).forEach(c => {
         const opt = document.createElement('option');
