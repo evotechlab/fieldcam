@@ -34,10 +34,7 @@
                 
                 localStorage.setItem("db_access", token);
                 localStorage.setItem("dropbox_access_token", token);
-                localStorage.setItem("dropboxToken", token);
-                
-                alert("✅ Token catturato con successo! Ora puoi entrare nel modulo.");
-                
+                localStorage.setItem("dropboxToken", token);             
                
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
