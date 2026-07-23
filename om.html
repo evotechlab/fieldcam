@@ -74,11 +74,22 @@
                 <span id="syncBadgeCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">0</span>
             </div>
 
-        <button onclick="hardReset()" class="text-slate-500 hover:text-red-600 transition p-2 rounded-lg hover:bg-red-50" title="Logout">
+<div class="relative">
+    <!-- Pulsante menu (Tre puntini) -->
+    <button onclick="toggleMenu()" id="menuTrigger" class="text-slate-500 hover:text-slate-800 transition p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200" title="Opzioni">
+        <i class="fa-solid fa-ellipsis-vertical text-xl px-2"></i>
+    </button>
+
+    <!-- Tendina Logout -->
+    <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 hidden z-50 transform origin-top-right transition-all">
+        <button onclick="hardReset()" class="w-full text-left px-4 py-2 text-slate-700 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-3">
             <i class="fas fa-sign-out-alt text-lg"></i>
+            <span class="font-semibold text-sm">Esci al Menù</span>
         </button>
+    </div>
+</div>
+         
         </div>
-        
     </div>
 </header>
 
@@ -761,6 +772,23 @@ function softResetCamera() {
     renderPhotoGrid();
     document.getElementById('cameraInput').value = "";
 }
+
+// Mostra/Nasconde la tendina
+function toggleMenu() {
+    const dropdown = document.getElementById('dropdownMenu');
+    dropdown.classList.toggle('hidden');
+}
+
+// Chiude la tendina se l'utente clicca fuori
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('dropdownMenu');
+    const trigger = document.getElementById('menuTrigger');
+    
+    // Se il click non è né sul pulsante né dentro la tendina, nascondila
+    if (!trigger.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
 
 function hardReset() {
 
