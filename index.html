@@ -18,16 +18,28 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     </style>
 
-    <!-- Registrazione Service Worker per l'uso Offline -->
+<!-- Script cattura-token Dropbox -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrato nel Menu:', reg))
-            .catch(err => console.error('Errore Service Worker:', err));
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash;
+            if (hash && hash.includes("access_token")) {
+                const params = new URLSearchParams(hash.substring(1));
+                const token = params.get("access_token");
+                
+                if (token) {
+                    // Salva il token
+                    localStorage.setItem("db_access", token);
+                    
+                    // Mostra un avviso di successo
+                    alert("✅ Connessione a Dropbox completata con successo! Ora puoi accedere ai moduli.");
+                    
+                    // Pulisce l'URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
         });
-      }
     </script>
+    
 </head>
 
 <body class="bg-slate-50 text-slate-800 h-[100dvh] flex flex-col overflow-hidden">
