@@ -4,8 +4,11 @@ const CACHE_NAME = 'fieldcam-offline-v5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
+    './om.html',          // Il nome che hai dato alla vecchia versione
+    './quality.html',     // Il nome che darai alla versione nuova
     './manifest.json',
     './icon.png'
+    // Aggiungi qui anche eventuali file app.js o css se li tieni separati
 ];
 
 self.addEventListener('install', (event) => {
