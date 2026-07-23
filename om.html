@@ -74,9 +74,9 @@
                 <span id="syncBadgeCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">0</span>
             </div>
 
-            <button onclick="hardReset()" class="text-slate-500 hover:text-red-600 transition p-2 rounded-lg hover:bg-red-50" title="Azzera Dati">
-                <i class="fas fa-rotate-right text-lg"></i>
-            </button>
+        <button onclick="hardReset()" class="text-slate-500 hover:text-red-600 transition p-2 rounded-lg hover:bg-red-50" title="Logout">
+            <i class="fas fa-sign-out-alt text-lg"></i>
+        </button>
         </div>
         
     </div>
@@ -763,15 +763,18 @@ function softResetCamera() {
 }
 
 function hardReset() {
-    if(!confirm("Attenzione: Cliccando OK scollegherai l'app e la cache. I dati non inviati andranno persi.")) return;
+
+    if(!confirm("Attenzione: Stai per effettuare il Logout.")) return;
     
+    // 2. Rimuoviamo SOLO lo sblocco dell'operatore mobile e la lista cantieri scaricata
     localStorage.removeItem("fc_mobile_unlocked");
-    localStorage.removeItem("db_access");
-    localStorage.removeItem("fc_lista_cantieri"); // Puliamo anche la lista cantieri
+    localStorage.removeItem("fc_lista_cantieri"); 
     
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) { registration.unregister(); }
+            for(let registration of registrations) { 
+                registration.unregister(); 
+            }
         });
     }
     
