@@ -10,15 +10,38 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon.png">
     
-    <script>
+<script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrato:', reg))
-            .catch(err => console.error('Errore Service Worker:', err));
+          navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('Service Worker registrato:', reg);
+
+            // 1. Forza l'app a cercare in background se su GitHub c'è un sw.js più recente
+            reg.update();
+
+            // 2. Se trova una differenza...
+            reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              installingWorker.onstatechange = () => {
+                // 3. Quando il nuovo codice è pronto all'uso...
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log("Nuova versione dell'app trovata! Auto-aggiornamento in corso...");
+                  
+                  // 4. Distrugge la vecchia cache e ricarica la pagina automaticamente
+                  caches.keys().then(cacheNames => {
+                    return Promise.all(
+                      cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                  }).then(() => {
+                    window.location.reload(true); // Ricarica forzata per mostrare le novità
+                  });
+                }
+              };
+            };
+          }).catch(err => console.error('Errore Service Worker:', err));
         });
       }
-    </script>
+</script>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
