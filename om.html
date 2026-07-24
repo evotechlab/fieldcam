@@ -274,6 +274,37 @@ let isSessionLocked = false;
 let isSyncing = false;
 let cantieriLocali = []; // Aggiunta per il motore Ibrido
 
+/* ================= AUTO-COMPILAZIONE OPERATORE ================= */
+async function compilaOperatoreDaDropbox() {
+    const token = localStorage.getItem('db_access');
+    const campoOperatore = document.getElementById('operatore');
+
+    if (!token || !campoOperatore) return;
+
+    try {
+        const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.name && data.name.display_name) {
+                // Scrive il nome estratto
+                campoOperatore.value = data.name.display_name;
+                
+                // Blocca il campo e lo rende visivamente "disabilitato"
+                campoOperatore.readOnly = true; 
+                campoOperatore.classList.add('bg-slate-200', 'text-slate-500', 'cursor-not-allowed'); 
+            }
+        }
+    } catch (error) {
+        console.error("Errore recupero operatore:", error);
+    }
+}
+
 /* ================= INIZIALIZZAZIONE CON DOPPIA SERRATURA ================= */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!isAppUnlocked) {
@@ -283,6 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // INNESCO MOTORE IBRIDO
         caricaCantieriLocali(); 
         syncCantieriDaDropbox();
+        compilaOperatoreDaDropbox();
     }
     updateSyncBadge();
 });
