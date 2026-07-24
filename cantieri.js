@@ -2,6 +2,7 @@
 const RUBRICA_LOTTI = {
     "HERGO_FOGGIA_66MW": ["Lotto B", "Lotto C", "Lotto D"],
     "WHYSOL_MILANO_10MW": ["Lotto 1", "Lotto 2"],
+    "TEST_TARANTO_01MW": ["Test 1", "Test 2"],
     "DEFAULT": ["LOTTO UNICO", "LOTTO A", "LOTTO B"] 
 };
 
