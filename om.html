@@ -330,12 +330,21 @@ async function verifyMobileLock() {
         
         if (data.success) {
             localStorage.setItem("fc_mobile_unlocked", "true");
+            
+            // AGGIUNTO: Salva il nome digitato nel login
+            localStorage.setItem("fc_nome_operatore", user); 
+            
             isAppUnlocked = true;
             document.getElementById('appLockScreen').classList.add('hidden');
             await avviaFlussoDropbox();
-            // INNESCO MOTORE IBRIDO (Se si sblocca ora)
+            
+            // INNESCO MOTORE IBRIDO
             caricaCantieriLocali(); 
             syncCantieriDaDropbox();
+            
+            // AGGIUNTO: Compila il campo in tempo reale senza ricaricare la pagina
+            impostaNomeOperatore(); 
+            
         } else {
             err.innerText = "Credenziali errate. Riprova.";
             err.classList.remove('hidden');
@@ -347,7 +356,7 @@ async function verifyMobileLock() {
         resetLockBtn(btn);
     }
 }
-
+    
 function resetLockBtn(btn) {
     btn.innerHTML = '<i class="fas fa-key mr-2"></i> Accedi';
     btn.disabled = false;
