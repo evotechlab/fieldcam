@@ -1,15 +1,14 @@
 // Cambia il versioning nei futuri aggiornamenti
-const CACHE_NAME = 'fieldcam-offline-v9';
+const CACHE_NAME = 'fieldcam-offline-v10';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './om.html',          
-    './quality.html',     
+    './om.html',
+    './quality.html',
+    './cantieri.js',
     './manifest.json',
-    './cantieri.js,
     './icon.png'
-    
 ];
 
 self.addEventListener('install', (event) => {
