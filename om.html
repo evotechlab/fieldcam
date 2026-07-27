@@ -375,6 +375,9 @@ async function avviaFlussoDropbox() {
 
 async function loginDropbox() {
     try {
+        // AGGIUNTA: Lascia la traccia per O&M
+        localStorage.setItem('pagina_partenza', 'om.html'); 
+        
         const res = await fetch(WORKER_URL, {
             method: "POST", 
             headers: { "Content-Type": "application/json" },
