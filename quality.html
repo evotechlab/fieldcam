@@ -407,6 +407,9 @@ async function avviaFlussoDropbox() {
 
 async function loginDropbox() {
     try {
+        // AGGIUNTA: Lascia la traccia per Quality
+        localStorage.setItem('pagina_partenza', 'quality.html'); 
+        
         const res = await fetch(WORKER_URL, {
             method: "POST", 
             headers: { "Content-Type": "application/json" },
