@@ -1,7 +1,6 @@
-/* ================= RUBRICA LOTTI ================= */
+/* ================= RUBRICA LOTTI ================= QUALITY FEATURE */
 const RUBRICA_LOTTI = {
     "HERGO_FOGGIA_66MW": ["Lotto B", "Lotto C", "Lotto D"],
-    "HERON2_GINOSA_00MW":[],
     "DEFAULT": ["LOTTO UNICO", "LOTTO A", "LOTTO B"] 
 };
 
