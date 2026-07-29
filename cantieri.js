@@ -1,7 +1,7 @@
 /* ================= RUBRICA LOTTI ================= */
 const RUBRICA_LOTTI = {
     "HERGO_FOGGIA_66MW": ["Lotto B", "Lotto C", "Lotto D"],
-    "HERON2_00MW_Ginosa":[],
+    "HERON2_GINOSA_00MW":[],
     "DEFAULT": ["LOTTO UNICO", "LOTTO A", "LOTTO B"] 
 };
 
