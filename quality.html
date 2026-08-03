@@ -869,6 +869,27 @@ function hardReset() {
     window.location.reload();
 }
 
+// Popolamento automatico della tendina Lotti all'apertura
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // POPOLA SOLO LA TENDINA "AREA LOTTI" (ID: stato)
+    const statoSelect = document.getElementById('stato');
+    
+    // Controlla che la tendina esista e che la rubrica in cantieri.js sia caricata
+    if (statoSelect && typeof RUBRICA_LOTTI !== 'undefined') {
+        // Inserisce il testo di default
+        statoSelect.innerHTML = '<option value="" disabled selected>Seleziona lotto...</option>';
+        
+        // Cicla la rubrica e crea le opzioni dinamicamente
+        RUBRICA_LOTTI.forEach(lotto => {
+            const opt = document.createElement('option');
+            opt.value = lotto;
+            opt.textContent = lotto;
+            statoSelect.appendChild(opt);
+        });
+    }
+});
+
 </script>
 
 </body>
