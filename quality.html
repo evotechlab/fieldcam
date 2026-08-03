@@ -564,7 +564,8 @@ async function syncCantieriDaDropbox() {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}`
             },
-            body: JSON.stringify({ action: 'listFolder', path: '/FieldCam' })
+            // CORRETTO: stringa vuota per il worker mobile
+            body: JSON.stringify({ action: 'listFolder', path: '' })
         });
 
         if (!res.ok) throw new Error("Errore Serverless");
