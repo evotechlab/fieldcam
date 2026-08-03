@@ -800,10 +800,11 @@ async function processSyncQueue(manualClick = false) {
             const safeStato = session.stato.replace(/[^a-zA-Z0-9]/g, '_');
             const safeZona = session.zona.replace(/[^a-zA-Z0-9]/g, '_');
             
-            // 2. Generazione Nomi Parlanti e Cronologici (Es: 2026-07-27_15-30-00_01_PRIMA_02_MODULI_FV_01.jpg)
+            // 2. Generazione Nomi Parlanti con Nome Operatore
             const photoNames = session.photos.map((_, idx) => {
                 const counter = String(idx + 1).padStart(2, '0');
-                return `${dStr}_${tStr}_${safeStato}_${safeZona}_${counter}.jpg`;
+                // Aggiungiamo la variabile safeOp (già pulita da spazi) nel nome del file
+                return `${dStr}_${tStr}_${safeOp}_${safeStato}_${safeZona}_${counter}.jpg`;
             });
 
             const masterData = { operatore: session.operatore, impianto: session.impianto, potenza: session.potenza, luogo: session.luogo, ultimo_aggiornamento: d.toISOString() };
