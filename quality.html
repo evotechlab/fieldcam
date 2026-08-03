@@ -800,11 +800,18 @@ async function processSyncQueue(manualClick = false) {
             const safeStato = session.stato.replace(/[^a-zA-Z0-9]/g, '_');
             const safeZona = session.zona.replace(/[^a-zA-Z0-9]/g, '_');
             
-            // 2. Generazione Nomi Parlanti con Nome Operatore
+            // 2. Generazione Nomi Parlanti (con Operatore e Coordinate GPS)
+            let gpsString = "";
+            // Controlla se il GPS è stato rilevato correttamente per questa sessione
+            if (session.gps && session.gps.lat && session.gps.lng) {
+                // Arrotondiamo a 5 decimali (precisione di circa 1 metro)
+                gpsString = `_LAT${session.gps.lat.toFixed(5)}_LNG${session.gps.lng.toFixed(5)}`;
+            }
+
             const photoNames = session.photos.map((_, idx) => {
                 const counter = String(idx + 1).padStart(2, '0');
-                // Aggiungiamo la variabile safeOp (già pulita da spazi) nel nome del file
-                return `${dStr}_${tStr}_${safeOp}_${safeStato}_${safeZona}_${counter}.jpg`;
+                // Inserisce gpsString prima del counter finale
+                return `${dStr}_${tStr}_${safeOp}_${safeStato}_${safeZona}${gpsString}_${counter}.jpg`;
             });
 
             const masterData = { operatore: session.operatore, impianto: session.impianto, potenza: session.potenza, luogo: session.luogo, ultimo_aggiornamento: d.toISOString() };
