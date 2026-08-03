@@ -872,16 +872,22 @@ function hardReset() {
 // Popolamento automatico della tendina Lotti all'apertura
 document.addEventListener('DOMContentLoaded', () => {
     
-    // POPOLA SOLO LA TENDINA "AREA LOTTI" (ID: stato)
     const statoSelect = document.getElementById('stato');
     
-    // Controlla che la tendina esista e che la rubrica in cantieri.js sia caricata
     if (statoSelect && typeof RUBRICA_LOTTI !== 'undefined') {
         // Inserisce il testo di default
         statoSelect.innerHTML = '<option value="" disabled selected>Seleziona lotto...</option>';
         
-        // Cicla la rubrica e crea le opzioni dinamicamente
-        RUBRICA_LOTTI.forEach(lotto => {
+        // 1. Capisce come è fatta RUBRICA_LOTTI e la trasforma in una lista leggibile
+        let lottiList = [];
+        if (Array.isArray(RUBRICA_LOTTI)) {
+            lottiList = RUBRICA_LOTTI; // Se è già una lista
+        } else {
+            lottiList = Object.keys(RUBRICA_LOTTI); // Se è un oggetto, prende i nomi (le chiavi)
+        }
+
+        // 2. Cicla la lista e popola il menù a tendina
+        lottiList.forEach(lotto => {
             const opt = document.createElement('option');
             opt.value = lotto;
             opt.textContent = lotto;
