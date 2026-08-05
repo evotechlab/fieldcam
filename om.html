@@ -519,16 +519,17 @@ async function handleRedirect() {
 }
 
 async function proxyFetch(filename, fileOrString, isJson = false) {
-    if(!accessToken) return { status: 401 };
+    // Non serve più bloccare se manca accessToken qui, ci pensa la nuova funzione.
 
     const url = new URL(WORKER_URL);
     url.searchParams.append("action", "upload");
     url.searchParams.append("filename", filename);
 
-    const res = await fetch(url.toString(), {
+    // 1. ECCO LA MODIFICA: Usiamo fetchConAutoRinnovo
+    const res = await fetchConAutoRinnovo(url.toString(), {
         method: "POST",
         headers: { 
-            "Authorization": "Bearer " + accessToken,
+            // 2. Rimosso "Authorization": lo inserisce da sola la funzione!
             "Content-Type": isJson ? "application/json" : "application/octet-stream"
         },
         body: fileOrString 
@@ -536,12 +537,9 @@ async function proxyFetch(filename, fileOrString, isJson = false) {
     
     const responseText = await res.text();
     
-    if(res.status === 401 || responseText.includes("expired_access_token")) { 
-        localStorage.removeItem("db_access");
-        alert("Sessione Dropbox scaduta. Clicca OK per ricaricare.");
-        location.reload(); 
-        throw new Error("Token scaduto");
-    }
+    // 3. Abbiamo RIMOSSO tutto il blocco "if(res.status === 401...)"
+    // Perché se il token scade, fetchConAutoRinnovo lo rinnova e riprova.
+    // Se fallisce in modo irrecuperabile, ricarica lei la pagina.
     
     if(!res.ok) throw new Error(`Errore Server: ${responseText}`);
     return JSON.parse(responseText);
@@ -617,14 +615,16 @@ function handleImpiantoChange() {
 }
 
 async function syncCantieriDaDropbox() {
-    if (!navigator.onLine || !accessToken) return;
+    // Rimosso il controllo "!accessToken" per lasciare fare al motore
+    if (!navigator.onLine) return;
 
     try {
-        const res = await fetch(WORKER_URL, {
+        // 1. ECCO LA MODIFICA: Usiamo fetchConAutoRinnovo
+        const res = await fetchConAutoRinnovo(WORKER_URL, {
             method: "POST",
             headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${accessToken}`
+                "Content-Type": "application/json"
+                // 2. Rimosso "Authorization": lo inserisce da sola la funzione!
             },
             body: JSON.stringify({ action: 'listFolder', path: '' }) 
         });
