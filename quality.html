@@ -383,7 +383,9 @@ async function fetchConAutoRinnovo(url, options = {}) {
             console.error("Nessun refresh token trovato. Richiesto login manuale.");
             localStorage.removeItem('db_access');
             localStorage.removeItem('db_refresh');
-            window.location.reload();
+            accessToken = null;
+            document.getElementById("appContent").classList.add("hidden");
+            avviaFlussoDropbox(); // Mostra la schermata di connessione senza ricaricare la pagina
             throw new Error("Sessione scaduta e non rinnovabile.");
         }
 
@@ -406,13 +408,15 @@ async function fetchConAutoRinnovo(url, options = {}) {
             console.error("[Auto-Rinnovo] Fallito il rinnovo da Dropbox.");
             localStorage.removeItem('db_access');
             localStorage.removeItem('db_refresh');
-            window.location.reload();
+            accessToken = null;
+            document.getElementById("appContent").classList.add("hidden");
+            avviaFlussoDropbox(); // Mostra la schermata di connessione senza ricaricare la pagina
             throw new Error("Impossibile rinnovare la sessione.");
         }
     }
     return response;
 }
-
+    
 /* ================= INIZIALIZZAZIONE CON DOPPIA SERRATURA ================= */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!isAppUnlocked) {
@@ -644,10 +648,10 @@ function handleImpiantoChange() {
 }
 
 async function syncCantieriDaDropbox() {
-    if (!navigator.onLine) return;
+    // REINSERITO: Se non c'è l'accessToken, si ferma subito senza fare chiamate a vuoto
+    if (!navigator.onLine || !accessToken) return;
 
     try {
-        // Usa il nuovo motore
         const res = await fetchConAutoRinnovo(WORKER_URL, {
             method: "POST",
             headers: { 
@@ -685,7 +689,6 @@ async function syncCantieriDaDropbox() {
         console.log("[Auto-Sync] Download cantieri fallito. Uso cache locale.", error);
     }
 }
-
 
 /* ================= UTILITY UI & FEEDBACK ================= */
 function showToast(msg, type="success") {
