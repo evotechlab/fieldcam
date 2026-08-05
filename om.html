@@ -324,6 +324,67 @@ window.addEventListener('load', async () => {
     }
 });
 
+/* ================= MOTORE DI AUTO-RINNOVO TOKEN ================= */
+async function fetchConAutoRinnovo(url, options = {}) {
+    let currentToken = localStorage.getItem('db_access');
+    
+    // Assicurati che l'oggetto headers esista
+    if (!options.headers) options.headers = {};
+    
+    // Inserisci il token corrente nella chiamata
+    if (currentToken) {
+        options.headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+
+    // 1. TENTA LA CHIAMATA NORMALE
+    let response = await fetch(url, options);
+
+    // 2. SE FALLISCE (Errore 500 o 401), TENTA IL RINNOVO
+    if (!response.ok && (response.status === 401 || response.status === 500)) {
+        console.warn("[Auto-Rinnovo] Rilevato errore di sessione. Tento il rinnovo del token...");
+        const refresh_token = localStorage.getItem('db_refresh');
+
+        if (!refresh_token) {
+            console.error("Nessun refresh token trovato. Richiesto login manuale.");
+            localStorage.removeItem('db_access');
+            localStorage.removeItem('db_refresh');
+            window.location.reload();
+            throw new Error("Sessione scaduta e non rinnovabile.");
+        }
+
+        // Chiede al tuo Worker di scambiare il refresh token con un nuovo token di accesso
+        const refreshRes = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'refresh_token', refresh_token: refresh_token })
+        });
+
+        const refreshData = await refreshRes.json();
+
+        if (refreshData.access_token) {
+            console.log("[Auto-Rinnovo] Token aggiornato con successo in background!");
+            
+            // Salva il nuovo token per le chiamate future
+            localStorage.setItem('db_access', refreshData.access_token);
+            
+            // Aggiorna anche la variabile globale (se usata)
+            if (typeof accessToken !== 'undefined') accessToken = refreshData.access_token;
+
+            // 3. RIPETI LA CHIAMATA ORIGINALE CON IL NUOVO TOKEN
+            options.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+            response = await fetch(url, options);
+        } else {
+            console.error("[Auto-Rinnovo] Fallito il rinnovo da Dropbox.");
+            localStorage.removeItem('db_access');
+            localStorage.removeItem('db_refresh');
+            window.location.reload();
+            throw new Error("Impossibile rinnovare la sessione.");
+        }
+    }
+
+    return response; // Restituisce il risultato (della prima chiamata o di quella ripetuta)
+}
+
 /* ================= AUTO-COMPILAZIONE OPERATORE ================= */
 function impostaNomeOperatore() {
     const nomeSalvato = localStorage.getItem("fc_nome_operatore");
