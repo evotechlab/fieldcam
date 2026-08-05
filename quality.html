@@ -306,6 +306,9 @@ document.addEventListener('click', function(event) {
 const WORKER_URL = "https://xkj7fxk.sviluppo-49a.workers.dev"; // WORKER MOBILE
 
 let accessToken = localStorage.getItem("db_access");
+// NUOVO: Aggiungiamo anche il recupero del refresh token
+let refreshToken = localStorage.getItem("db_refresh"); 
+
 let isAppUnlocked = localStorage.getItem("fc_mobile_unlocked") === "true"; // Chiave di sblocco Mobile
 
 let photoFilesQueue = []; 
@@ -314,6 +317,49 @@ let sessionUploadedPhotos = 0;
 let isSessionLocked = false;
 let isSyncing = false;
 let cantieriLocali = []; // Aggiunta per il motore Ibrido
+
+/* ================= STEP 2: CATTURA CODICE DROPBOX ================= */
+// Questo blocco si attiva in automatico appena la pagina si carica
+window.addEventListener('load', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    // Se c'è un codice nell'URL, significa che stiamo rientrando da Dropbox
+    if (code) {
+        console.log("Codice di autorizzazione rilevato, contatto il Worker...");
+        
+        try {
+            const response = await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_tokens', code: code })
+            });
+
+            const data = await response.json();
+
+            // Se il worker ci restituisce i token, li salviamo
+            if (data.access_token && data.refresh_token) {
+                localStorage.setItem('db_access', data.access_token);
+                localStorage.setItem('db_refresh', data.refresh_token);
+                
+                // Aggiorniamo le variabili in memoria
+                accessToken = data.access_token;
+                refreshToken = data.refresh_token;
+
+                // Puliamo l'URL rimuovendo il parametro "?code=..." (è più sicuro e pulito)
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                console.log("Accesso Dropbox configurato con successo!");
+                
+                // Se hai una funzione che inizializza la tua app (es. scarica i cantieri), 
+                // puoi chiamarla qui. Altrimenti l'utente può procedere normalmente.
+            }
+        } catch (error) {
+            console.error("Errore nello scambio del token:", error);
+            alert("Errore di connessione a Dropbox. Riprova.");
+        }
+    }
+});
 
 /* ================= INIZIALIZZAZIONE CON DOPPIA SERRATURA ================= */
 document.addEventListener('DOMContentLoaded', async () => {
