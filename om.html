@@ -333,18 +333,11 @@ window.addEventListener('load', async () => {
 async function fetchConAutoRinnovo(url, options = {}) {
     let currentToken = localStorage.getItem('db_access');
     
-    // Assicurati che l'oggetto headers esista
     if (!options.headers) options.headers = {};
-    
-    // Inserisci il token corrente nella chiamata
-    if (currentToken) {
-        options.headers['Authorization'] = `Bearer ${currentToken}`;
-    }
+    if (currentToken) options.headers['Authorization'] = `Bearer ${currentToken}`;
 
-    // 1. TENTA LA CHIAMATA NORMALE
     let response = await fetch(url, options);
 
-    // 2. SE FALLISCE (Errore 500 o 401), TENTA IL RINNOVO
     if (!response.ok && (response.status === 401 || response.status === 500)) {
         console.warn("[Auto-Rinnovo] Rilevato errore di sessione. Tento il rinnovo del token...");
         const refresh_token = localStorage.getItem('db_refresh');
@@ -353,11 +346,12 @@ async function fetchConAutoRinnovo(url, options = {}) {
             console.error("Nessun refresh token trovato. Richiesto login manuale.");
             localStorage.removeItem('db_access');
             localStorage.removeItem('db_refresh');
-            window.location.reload();
+            accessToken = null;
+            document.getElementById("appContent").classList.add("hidden");
+            avviaFlussoDropbox(); // Mostra la schermata di connessione senza ricaricare la pagina
             throw new Error("Sessione scaduta e non rinnovabile.");
         }
 
-        // Chiede al tuo Worker di scambiare il refresh token con un nuovo token di accesso
         const refreshRes = await fetch(WORKER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -368,26 +362,22 @@ async function fetchConAutoRinnovo(url, options = {}) {
 
         if (refreshData.access_token) {
             console.log("[Auto-Rinnovo] Token aggiornato con successo in background!");
-            
-            // Salva il nuovo token per le chiamate future
             localStorage.setItem('db_access', refreshData.access_token);
-            
-            // Aggiorna anche la variabile globale (se usata)
             if (typeof accessToken !== 'undefined') accessToken = refreshData.access_token;
 
-            // 3. RIPETI LA CHIAMATA ORIGINALE CON IL NUOVO TOKEN
             options.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
             response = await fetch(url, options);
         } else {
             console.error("[Auto-Rinnovo] Fallito il rinnovo da Dropbox.");
             localStorage.removeItem('db_access');
             localStorage.removeItem('db_refresh');
-            window.location.reload();
+            accessToken = null;
+            document.getElementById("appContent").classList.add("hidden");
+            avviaFlussoDropbox(); // Mostra la schermata di connessione senza ricaricare la pagina
             throw new Error("Impossibile rinnovare la sessione.");
         }
     }
-
-    return response; // Restituisce il risultato (della prima chiamata o di quella ripetuta)
+    return response;
 }
 
 /* ================= AUTO-COMPILAZIONE OPERATORE ================= */
@@ -620,18 +610,16 @@ function handleImpiantoChange() {
 }
 
 async function syncCantieriDaDropbox() {
-    // Rimosso il controllo "!accessToken" per lasciare fare al motore
-    if (!navigator.onLine) return;
+    // REINSERITO: Se non c'è l'accessToken, si ferma subito senza fare chiamate a vuoto
+    if (!navigator.onLine || !accessToken) return;
 
     try {
-        // 1. ECCO LA MODIFICA: Usiamo fetchConAutoRinnovo
         const res = await fetchConAutoRinnovo(WORKER_URL, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json"
-                // 2. Rimosso "Authorization": lo inserisce da sola la funzione!
             },
-            body: JSON.stringify({ action: 'listFolder', path: '' }) 
+            body: JSON.stringify({ action: 'listFolder', path: '' })
         });
 
         if (!res.ok) throw new Error("Errore Serverless");
