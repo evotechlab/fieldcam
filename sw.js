@@ -1,68 +1,61 @@
-// Cambia il versioning nei futuri aggiornamenti
-const CACHE_NAME = 'fieldcam-offline-v10';
-
+const CACHE_NAME = 'fieldcam-offline-v1'; 
 const ASSETS_TO_CACHE = [
-    './',
-    './index.html',
-    './om.html',
-    './quality.html',
-    './cantieri.js',
-    './manifest.json',
-    './icon.png'
+  './',
+  './index.html',
+  './om.html',
+  './quality.html',
+  './cantieri.js',
+  './manifest.json',
+  './icon.png'
 ];
 
 self.addEventListener('install', (event) => {
-    // skipWaiting forza l'attivazione immediata del nuovo Service Worker
-    self.skipWaiting(); 
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-        .then((cache) => {
-            console.log('[Service Worker] Salvataggio asset locali...');
-            return cache.addAll(ASSETS_TO_CACHE);
-        })
-    );
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('[Service Worker] Eliminazione vecchia cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim()) // Prende il controllo immediato della pagina
-    );
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-    // Ignora le richieste POST (come l'invio foto) o chiamate esterne
-    if (event.request.method !== 'GET') return;
-    if (event.request.url.includes('workers.dev')) return;
+  if (event.request.method !== 'GET') return;
+  
+  // Gestiamo solo i file della nostra app (su GitHub) per evitare conflitti con Dropbox/Worker
+  if (!event.request.url.startsWith(self.location.origin)) return;
 
-    event.respondWith(
-        // STRATEGIA: NETWORK-FIRST
-        // 1. Prova prima a scaricare il file aggiornato da internet
-        fetch(event.request).then((networkResponse) => {
-            
-            // Se la rete risponde correttamente (200), aggiorniamo la cache 
-            if (networkResponse && networkResponse.status === 200) {
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-            }
-            // Mostra all'utente la versione appena scaricata
-            return networkResponse;
-            
-        }).catch(() => {
-            // 2. FALLBACK OFFLINE
-            // Se la rete fallisce (niente segnale nel cantiere), pesca il file dalla memoria
-            console.log('[Service Worker] Rete assente, carico dalla cache:', event.request.url);
-            return caches.match(event.request);
-        })
-    );
+  event.respondWith(
+    // IL TRUCCO MAGICO: { cache: 'no-store' }
+    // Ordina al browser del telefono di ignorare la sua memoria testarda e di scaricare SEMPRE il file reale
+    fetch(event.request, { cache: 'no-store' })
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          // Rete presente: aggiorniamo la cassaforte offline con l'ultimo file appena scaricato
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Operatore offline in cantiere: la rete fallisce, peschiamo il file dalla cassaforte!
+        console.log('[Service Worker] Connessione assente: caricamento file dalla cache locale.');
+        return caches.match(event.request);
+      })
+  );
 });
