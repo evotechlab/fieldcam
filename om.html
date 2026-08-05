@@ -291,6 +291,13 @@ window.addEventListener('load', async () => {
     if (code) {
         console.log("Codice di autorizzazione rilevato, contatto il Worker...");
         
+        // Cambia il testo del bottone per mostrare all'utente che stiamo elaborando
+        const authBtn = document.querySelector('#authCard button');
+        if(authBtn) {
+            authBtn.disabled = true;
+            authBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Configurazione in corso...';
+        }
+        
         try {
             const response = await fetch(WORKER_URL, {
                 method: 'POST',
@@ -305,21 +312,19 @@ window.addEventListener('load', async () => {
                 localStorage.setItem('db_access', data.access_token);
                 localStorage.setItem('db_refresh', data.refresh_token);
                 
-                // Aggiorniamo le variabili in memoria
-                accessToken = data.access_token;
-                refreshToken = data.refresh_token;
-
-                // Puliamo l'URL rimuovendo il parametro "?code=..." (è più sicuro e pulito)
-                window.history.replaceState({}, document.title, window.location.pathname);
+                console.log("Accesso Dropbox configurato con successo! Riavvio l'interfaccia...");
                 
-                console.log("Accesso Dropbox configurato con successo!");
-                
-                // Se hai una funzione che inizializza la tua app (es. scarica i cantieri), 
-                // puoi chiamarla qui. Altrimenti l'utente può procedere normalmente.
+                // IL TRUCCO: Ricarica la pagina rimuovendo il codice dall'URL.
+                // Così la pagina riparte, legge i token, nasconde il login e carica i cantieri!
+                window.location.replace(window.location.pathname);
             }
         } catch (error) {
             console.error("Errore nello scambio del token:", error);
             alert("Errore di connessione a Dropbox. Riprova.");
+            if(authBtn) {
+                authBtn.disabled = false;
+                authBtn.innerHTML = '<i class="fa-solid fa-link mr-2"></i> Connetti Server';
+            }
         }
     }
 });
