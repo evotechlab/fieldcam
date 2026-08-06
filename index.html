@@ -41,6 +41,22 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
+
+        // VIGILE URBANO
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    
+    if (code) {
+        // Scopre da quale app era partito (O&M o Quality)
+        const paginaPartenza = localStorage.getItem('pagina_partenza') || 'om.html';
+        
+        // Rimbalza l'utente portandosi dietro il codice segreto
+        window.location.href = paginaPartenza + "?code=" + code;
+    }
+});
+
+        
     </script>
     
 </head>
