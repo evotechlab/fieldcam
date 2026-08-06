@@ -482,19 +482,6 @@ async function refreshAccessToken() {
     }
 }
 
-async function handleRedirect() {
-    const hash = window.location.hash;
-    if (hash && hash.includes("access_token")) {
-        const params = new URLSearchParams(hash.substring(1));
-        const token = params.get("access_token");
-        if (token) {
-            accessToken = token;
-            localStorage.setItem("db_access", accessToken);
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }
-}
-
 async function proxyFetch(filename, fileOrString, isJson = false, isRetry = false) {
     if(!accessToken) return { status: 401 };
 
