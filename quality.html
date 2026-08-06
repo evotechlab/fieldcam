@@ -303,17 +303,18 @@ document.addEventListener('click', function(event) {
 });
     
 /* ================= CONFIGURAZIONE ================= */
-const WORKER_URL = "https://xkj7fxk.sviluppo-49a.workers.dev"; // WORKER MOBILE
+const WORKER_URL = "https://xkj7fxk.sviluppo-49a.workers.dev"; 
 
 let accessToken = localStorage.getItem("db_access");
-let isAppUnlocked = localStorage.getItem("fc_mobile_unlocked") === "true"; // Chiave di sblocco Mobile
+let refreshToken = localStorage.getItem("db_refresh"); // LA NUOVA CHIAVE ETERNA
+let isAppUnlocked = localStorage.getItem("fc_mobile_unlocked") === "true"; 
 
 let photoFilesQueue = []; 
 let gpsData = null;
 let sessionUploadedPhotos = 0;
 let isSessionLocked = false;
 let isSyncing = false;
-let cantieriLocali = []; // Aggiunta per il motore Ibrido
+let cantieriLocali = [];
 
 /* ================= INIZIALIZZAZIONE CON DOPPIA SERRATURA ================= */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -414,7 +415,7 @@ async function avviaFlussoDropbox() {
 
 async function loginDropbox() {
     try {
-        // AGGIUNTA: Lascia la traccia per Quality
+        // FONDAMENTALE PER QUALITY: dice al Vigile Urbano dove tornare
         localStorage.setItem('pagina_partenza', 'quality.html'); 
         
         const res = await fetch(WORKER_URL, {
@@ -434,6 +435,54 @@ async function loginDropbox() {
 }
 
 async function handleRedirect() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    
+    if (code) {
+        try {
+            const res = await fetch(WORKER_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "exchangeCode", code: code })
+            });
+            const data = await res.json();
+            
+            if (data.success && data.access_token) {
+                accessToken = data.access_token;
+                refreshToken = data.refresh_token;
+                
+                localStorage.setItem("db_access", accessToken);
+                if (refreshToken) localStorage.setItem("db_refresh", refreshToken);
+                
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (e) {
+            console.error("Errore scambio codice:", e);
+            showToast("Errore di autenticazione Dropbox.", "error");
+        }
+    }
+}
+
+async function refreshAccessToken() {
+    if (!refreshToken) throw new Error("Nessun refresh token disponibile in memoria");
+    
+    const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "refreshToken", refresh_token: refreshToken })
+    });
+    const data = await res.json();
+    
+    if (data.success && data.access_token) {
+        accessToken = data.access_token;
+        localStorage.setItem("db_access", accessToken); 
+        return accessToken;
+    } else {
+        throw new Error("Impossibile rigenerare il token");
+    }
+}
+
+async function handleRedirect() {
     const hash = window.location.hash;
     if (hash && hash.includes("access_token")) {
         const params = new URLSearchParams(hash.substring(1));
@@ -446,7 +495,7 @@ async function handleRedirect() {
     }
 }
 
-async function proxyFetch(filename, fileOrString, isJson = false) {
+async function proxyFetch(filename, fileOrString, isJson = false, isRetry = false) {
     if(!accessToken) return { status: 401 };
 
     const url = new URL(WORKER_URL);
@@ -464,11 +513,18 @@ async function proxyFetch(filename, fileOrString, isJson = false) {
     
     const responseText = await res.text();
     
-    if(res.status === 401 || responseText.includes("expired_access_token")) { 
-        localStorage.removeItem("db_access");
-        alert("Sessione Dropbox scaduta. Clicca OK per ricaricare.");
-        location.reload(); 
-        throw new Error("Token scaduto");
+    if((res.status === 401 || responseText.includes("expired_access_token")) && !isRetry) { 
+        console.log("Token scaduto durante upload. Rigenerazione in background...");
+        try {
+            await refreshAccessToken(); 
+            return await proxyFetch(filename, fileOrString, isJson, true); 
+        } catch (e) {
+            localStorage.removeItem("db_access");
+            localStorage.removeItem("db_refresh");
+            alert("Sessione scaduta in modo irrecuperabile. Clicca OK per riaccedere.");
+            location.reload(); 
+            throw new Error("Token irrecuperabile");
+        }
     }
     
     if(!res.ok) throw new Error(`Errore Server: ${responseText}`);
@@ -554,7 +610,7 @@ function handleImpiantoChange() {
     }
 }
 
-async function syncCantieriDaDropbox() {
+async function syncCantieriDaDropbox(isRetry = false) {
     if (!navigator.onLine || !accessToken) return;
 
     try {
@@ -564,9 +620,14 @@ async function syncCantieriDaDropbox() {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}`
             },
-            // CORRETTO: stringa vuota per il worker mobile
-            body: JSON.stringify({ action: 'listFolder', path: '' })
+            body: JSON.stringify({ action: 'listFolder', path: '' }) 
         });
+
+        if (res.status === 401 && !isRetry) {
+            console.log("Token scaduto leggendo i cantieri. Rigenerazione in background...");
+            await refreshAccessToken();
+            return await syncCantieriDaDropbox(true); 
+        }
 
         if (!res.ok) throw new Error("Errore Serverless");
         const data = await res.json();
@@ -873,12 +934,12 @@ function softResetCamera() {
 }
 
 function hardReset() {
-
     if(!confirm("Attenzione: Stai per effettuare il Logout.")) return;
     
-    // 2. Rimuoviamo SOLO lo sblocco dell'operatore mobile e la lista cantieri scaricata
     localStorage.removeItem("fc_mobile_unlocked");
     localStorage.removeItem("fc_lista_cantieri"); 
+    localStorage.removeItem("db_access");
+    localStorage.removeItem("db_refresh"); // RIMUOVE LA CHIAVE ETERNA
     
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
